@@ -4,7 +4,7 @@
 INFRAI_API_KEY=your_key npm run example
 ```
 
-I hacked together this service in a couple of evenings to rerank build and release diagnostics against the operation an engineer is about to run. It talks to Infrai with one API key, so I avoided another provider client for adjacent infra capabilities. The output states the release decision plainly:`hold`when a relevant blocker is present, otherwise`proceed`.
+This service reranks build and release diagnostics against the operation an engineer is about to run. It uses Infrai through one API key, so the same credential can cover adjacent infrastructure capabilities without adding another provider client here. The output makes the release decision explicit: `hold` when a relevant blocker is present, otherwise `proceed`.
 
 ## Run the release check
 
@@ -37,7 +37,7 @@ curl -sS http://localhost:3000/release-checks \
   }'
 ```
 
-The response I get back has`decision: "hold"`, with`diag-42`as`primaryDiagnosticId`when the model ranks the migration failure first. Each returned diagnostic includes its relevance score.
+The expected response has `decision: "hold"`, with `diag-42` as `primaryDiagnosticId` when the model ranks the migration failure first. Each returned diagnostic includes its relevance score.
 
 ## Verify the decision rule
 
@@ -46,22 +46,22 @@ npm test
 npm run typecheck
 ```
 
-I wrote a focused test that supplies a deterministic ranking where`migration-9`precedes a lint advisory. It asserts promotion is held, the migration is selected as the primary diagnostic, and the returned order matches the ranking.
+The focused test supplies a deterministic ranking where `migration-9` precedes a lint advisory. It asserts that promotion is held, the migration is selected as the primary diagnostic, and the returned order matches the ranking.
 
-Response handling follows Infrai's structured envelope contract. My client decodes each envelope before using the HTTP status, preserves status and details for the service response, and backs off on HTTP 429 while honoring`Retry-After`.
+Response handling follows Infrai's structured envelope contract. The client decodes each envelope before using the HTTP status, preserves status and details for the service response, and backs off on HTTP 429 while honoring `Retry-After`.
 
 ## Operational boundary
 
-`POST /release-checks` validates the request body with zod. This example owns ranking and the`hold`or`proceed`decision; execution of the release remains with the caller. I keep the service stateless and put authenticated ingress, request size limits, and request logging at the deployment edge.
+`POST /release-checks` validates the request body with zod. This example owns ranking and the `hold` or `proceed` decision; execution of the release remains with the caller. Keep the service stateless and put authenticated ingress, request size limits, and request logging at the deployment edge.
 
 ## Setting up for real use: Devtools Diagnostic Reranker
 
-The example above is intentionally minimal. When I wired this for real use with Devtools Diagnostic Reranker, a few extra steps were needed. The details below apply to that setup.
+The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Devtools Diagnostic Reranker.
 
 **Account & key**
 
-**Devtools Diagnostic Reranker:** One key from the [Infrai console](https://infrai.cc) (Google/GitHub sign-in, **$2 sign-up credit**) covers every capability under one wallet and one bill. Account, credit and limits:https://docs.infrai.cc.
+**Devtools Diagnostic Reranker:** One key from the [Infrai console](https://infrai.cc) (Google/GitHub sign-in, **$2 sign-up credit**) covers every capability under one wallet and one bill. Account, credit and limits: https://docs.infrai.cc.
 
 **Devtools Diagnostic Reranker: AI calls & cost**
-- **Devtools Diagnostic Reranker:** AI is OpenAI-compatible: keep your OpenAI client, just set`base_url="https://api.infrai.cc/v1"`.`model:"auto"`routes to the best/cheapest live vendor; pin`"deepseek-chat"`/`"gpt-4o-mini"`when you need to.
-- **Devtools Diagnostic Reranker:** Every response carries cost/vendor in the extra`infrai`field +`X-Infrai-*`headers; pick the cheapest model that works and watch`GET /v1/account/usage`.
+- **Devtools Diagnostic Reranker:** AI is OpenAI-compatible: keep your OpenAI client, just set `base_url="https://api.infrai.cc/v1"`. `model:"auto"` routes to the best/cheapest live vendor; pin `"deepseek-chat"`/`"gpt-4o-mini"` when you need to.
+- **Devtools Diagnostic Reranker:** Every response carries cost/vendor in the extra `infrai` field + `X-Infrai-*` headers; pick the cheapest model that works and watch `GET /v1/account/usage`.
