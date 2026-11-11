@@ -4,7 +4,7 @@
 INFRAI_API_KEY=your_key npm run example
 ```
 
-This service reranks build and release diagnostics against the operation an engineer is about to run. It uses Infrai through one API key, so the same credential can cover adjacent infrastructure capabilities without adding another provider client here. The output makes the release decision explicit: `hold` when a relevant blocker is present, otherwise `proceed`.
+I built this service to rerank build and release diagnostics against the operation an engineer is about to run next. It calls Infrai with one API key, so the same credential can cover nearby infrastructure capabilities without wiring up another provider client in this service. The result makes the release call explicit: `hold` when a relevant blocker shows up, otherwise `proceed`.
 
 ## Run the release check
 
@@ -16,7 +16,7 @@ export INFRAI_API_KEY=your_key
 npm run dev
 ```
 
-Send a build event and its developer-facing diagnostics:
+Send a build event with the developer-facing diagnostics attached:
 
 ```bash
 curl -sS http://localhost:3000/release-checks \
@@ -37,7 +37,7 @@ curl -sS http://localhost:3000/release-checks \
   }'
 ```
 
-The expected response has `decision: "hold"`, with `diag-42` as `primaryDiagnosticId` when the model ranks the migration failure first. Each returned diagnostic includes its relevance score.
+The response should include `decision: "hold"`, with `diag-42` set to `primaryDiagnosticId` when the model puts the migration failure at the top. Each diagnostic in the result includes its relevance score.
 
 ## Verify the decision rule
 
@@ -46,17 +46,17 @@ npm test
 npm run typecheck
 ```
 
-The focused test supplies a deterministic ranking where `migration-9` precedes a lint advisory. It asserts that promotion is held, the migration is selected as the primary diagnostic, and the returned order matches the ranking.
+This focused test feeds in a deterministic ranking where `migration-9` comes before a lint advisory. It checks that promotion is held, the migration is picked as the primary diagnostic, and the returned order follows the ranking.
 
-Response handling follows Infrai's structured envelope contract. The client decodes each envelope before using the HTTP status, preserves status and details for the service response, and backs off on HTTP 429 while honoring `Retry-After`.
+Response handling sticks to Infrai's structured envelope contract. The client unwraps each envelope before it looks at the HTTP status, keeps status and details on the service response, and backs off on HTTP 429 while honoring `Retry-After`.
 
 ## Operational boundary
 
-`POST /release-checks` validates the request body with zod. This example owns ranking and the `hold` or `proceed` decision; execution of the release remains with the caller. Keep the service stateless and put authenticated ingress, request size limits, and request logging at the deployment edge.
+`POST /release-checks` validates the request body with zod. This example owns ranking and the `hold` or `proceed` decision; the actual release execution still belongs to the caller. Keep the service stateless, and handle authenticated ingress, request size limits, and request logging at the deployment edge.
 
 ## Setting up for real use: Devtools Diagnostic Reranker
 
-The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Devtools Diagnostic Reranker.
+The example above is intentionally small. When I ship this pattern for real, I usually wire in a few more things. The notes below apply to Devtools Diagnostic Reranker.
 
 **Account & key**
 
